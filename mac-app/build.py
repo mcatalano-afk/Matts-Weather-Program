@@ -1,6 +1,19 @@
-"""Assemble 'Elmer Weather.app' and zip it for download. Icon is an original drawing (CC0)."""
-import io, os, shutil, struct, zipfile, stat
+"""Assemble 'Elmer Weather.app', then package it as a .zip and (optionally) a .dmg disk image.
+Icon is an original drawing (CC0).
+
+    python3 build.py                                   # app + zip
+    python3 build.py --dmg-tools /path/to/libdmg-hfsplus   # app + zip + dmg
+
+The .dmg step works on Linux or macOS without hdiutil. It uses Mozilla's libdmg-hfsplus
+(https://github.com/mozilla/libdmg-hfsplus): build it with cmake, then point --dmg-tools at the checkout.
+On a Mac you can instead run: hdiutil create -volname "Elmer Weather" -srcfolder dist/dmg-root -format UDZO dist/Elmer-Weather.dmg
+"""
+import argparse, io, os, shutil, struct, subprocess, tempfile, zipfile, stat
 from PIL import Image, ImageDraw, ImageFilter
+
+ARGS = argparse.ArgumentParser()
+ARGS.add_argument("--dmg-tools", help="path to a built libdmg-hfsplus checkout (enables the .dmg)")
+ARGS = ARGS.parse_args()
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 OUT = os.path.join(HERE, "dist")
@@ -148,3 +161,69 @@ with zipfile.ZipFile(zpath, "w", zipfile.ZIP_DEFLATED) as z:
             zi.external_attr = (stat.S_IFREG | (os.stat(p).st_mode & 0o777)) << 16
             z.writestr(zi, open(p, "rb").read())
 print("built", zpath, os.path.getsize(zpath))
+
+# ---------- Disk image: the app plus an Applications shortcut to drag it onto ----------
+VOLNAME = "Elmer Weather"
+
+def rename_blank_volume(path, name):
+    """Set the volume name of a blank HFS+ image (root folder record + its thread in the catalog's only leaf)."""
+    with open(path, "r+b") as f:
+        d = bytearray(f.read())
+        vh = 1024
+        assert d[vh:vh + 2] == b"H+", "not an HFS+ image"
+        bs = struct.unpack(">I", d[vh + 40:vh + 44])[0]
+        cat = vh + 0x110
+        start = struct.unpack(">I", d[cat + 16:cat + 20])[0] * bs
+        firstleaf, = struct.unpack(">I", d[start + 14 + 10:start + 14 + 14])
+        nodesize, = struct.unpack(">H", d[start + 14 + 18:start + 14 + 20])
+        leaf = start + firstleaf * nodesize
+        node = d[leaf:leaf + nodesize]
+        nrec, = struct.unpack(">H", node[10:12])
+        offs = [struct.unpack(">H", node[nodesize - 2 * (i + 1):nodesize - 2 * i])[0] for i in range(nrec + 1)]
+        recs = [bytes(node[offs[i]:offs[i + 1]]) for i in range(nrec)]
+        assert nrec == 2, "expected a blank volume (root folder and its thread only)"
+        u = name.encode("utf-16-be")
+        nm = struct.pack(">H", len(name)) + u
+        folder, thread = recs
+        kl = struct.unpack(">H", folder[:2])[0]
+        folder = struct.pack(">HI", 6 + len(u), 1) + nm + folder[2 + kl:]              # key: parent 1 + name
+        tkl = struct.unpack(">H", thread[:2])[0]
+        thread = thread[:2 + tkl] + thread[2 + tkl:2 + tkl + 8] + nm                    # thread data: type, reserved, parent, name
+        new = bytearray(nodesize)
+        new[:14] = node[:14]
+        pos, table = 14, []
+        for r in (folder, thread):
+            table.append(pos); new[pos:pos + len(r)] = r; pos += len(r)
+        table.append(pos)
+        for i, o in enumerate(table):
+            struct.pack_into(">H", new, nodesize - 2 * (i + 1), o)
+        d[leaf:leaf + nodesize] = new
+        f.seek(0); f.write(d)
+
+if ARGS.dmg_tools:
+    tools = os.path.abspath(ARGS.dmg_tools)
+    hfsplus = os.path.join(tools, "build", "hfs", "hfsplus")
+    dmgtool = os.path.join(tools, "build", "dmg", "dmg")
+    blank = os.path.join(tools, "test", "empty.hfs")
+    for p in (hfsplus, dmgtool, blank):
+        assert os.path.exists(p), "missing " + p
+
+    root = os.path.join(OUT, "dmg-root")
+    shutil.rmtree(root, ignore_errors=True)
+    shutil.copytree(APP, os.path.join(root, "Elmer Weather.app"), symlinks=True)
+    os.symlink("/Applications", os.path.join(root, "Applications"))     # drag-to-install shortcut
+
+    used = sum(os.path.getsize(os.path.join(r, f)) for r, _, fs in os.walk(os.path.join(root, "Elmer Weather.app")) for f in fs)
+    size = ((used * 2 + 8 * 2**20) // 2**20) * 2**20          # room for HFS+ overhead, whole MB
+
+    with tempfile.TemporaryDirectory() as tmp:
+        vol = os.path.join(tmp, "volume.hfs")
+        shutil.copy(blank, vol)
+        rename_blank_volume(vol, VOLNAME)
+        run = lambda *a: subprocess.run([hfsplus, vol, *a], check=True, stdout=subprocess.DEVNULL)
+        run("grow", str(size))
+        run("--symlinks=clone_link", "addall", root, "/")   # keep Applications as a shortcut, don't copy its contents
+        run("chmod", "755", "/Elmer Weather.app/Contents/MacOS/Elmer Weather")
+        dpath = os.path.join(OUT, "Elmer-Weather.dmg")
+        subprocess.run([dmgtool, "build", vol, dpath], check=True, stdout=subprocess.DEVNULL)
+    print("built", dpath, os.path.getsize(dpath))

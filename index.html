@@ -127,6 +127,18 @@ a:focus-visible,button:focus-visible,input:focus-visible,summary:focus-visible{o
 .facts b{font-family:var(--mono);font-size:12px;font-weight:normal;font-variant-numeric:tabular-nums}
 .obs-note{font-size:11px;color:var(--muted)}
 
+/* Live camera (USGS, public domain) inside Current Conditions */
+.cam{display:grid;gap:6px}
+.cam[hidden]{display:none}
+.cam-head{display:flex;justify-content:space-between;align-items:baseline;gap:4px 8px;flex-wrap:wrap}
+.cam-head b{font-size:11px;color:#2f2f2f}
+.cam-head span{font-family:var(--mono);font-size:10px;color:var(--muted);font-variant-numeric:tabular-nums}
+.cam-frame{position:relative;border-radius:4px;overflow:hidden;aspect-ratio:16/9;border:1px solid #7a7a7a;
+  background:linear-gradient(#1b2633,#0c131b);box-shadow:inset 0 1px 4px rgba(0,0,0,.6)}
+.cam-frame img{width:100%;height:100%;object-fit:cover;display:block}
+.cam-fallback{position:absolute;inset:0;display:grid;place-content:center;text-align:center;padding:16px;color:#a9c3dc;font-size:12px}
+.cam-foot{display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px;font-size:11px;color:var(--muted)}
+
 .radar .box-body{display:grid;gap:8px}
 .radar-frame{position:relative;border-radius:4px;overflow:hidden;aspect-ratio:600/550;max-width:100%;border:1px solid #7a7a7a;
   background:linear-gradient(#1b2633,#0c131b);box-shadow:inset 0 1px 4px rgba(0,0,0,.6)}
@@ -246,6 +258,14 @@ footer{max-width:1060px;margin:14px auto 0;font-size:11px;color:#d6e6f8;line-hei
             <div><span>Wind</span><b id="wind">--</b></div>
             <div><span>Today Hi / Lo</span><b id="today">--</b></div>
           </div>
+          <div class="cam" id="cam" hidden>
+            <div class="cam-head"><b>Live Camera &#xB7; Woodstown, NJ</b><span id="camNote"></span></div>
+            <div class="cam-frame">
+              <img id="camImg" alt="Latest USGS webcam view across Veterans Memorial Lake toward the Horseshoe Dam on the Salem River at Woodstown, NJ">
+              <div class="cam-fallback" id="camFallback" hidden>The camera picture isn't available right now.</div>
+            </div>
+            <div class="cam-foot"><a id="camLink" href="https://atg.usgs.gov/HIVIS/camera/NJ_Salem_River_at_Woodstown" target="_blank" rel="noopener">Open camera on usgs.gov</a><span>Source: U.S. Geological Survey</span></div>
+          </div>
           <div class="obs-note" id="obsNote"></div>
         </div>
       </section>
@@ -293,6 +313,7 @@ footer{max-width:1060px;margin:14px auto 0;font-size:11px;color:#d6e6f8;line-hei
 
 <footer>
   Data, radar imagery and alerts: U.S. National Weather Service (api.weather.gov, radar.weather.gov), works of the U.S. Government in the public domain.
+  Live camera image: U.S. Geological Survey streamgage webcam 01482500, Salem River at Woodstown, NJ, public domain.
   ZIP code lookup: Zippopotam.us (place names and coordinates only).
   Weather icons are original drawings made for this page and released to the public domain (CC0).
   The Aqua-style window, buttons and pinstripes are drawn from scratch in CSS; no Apple artwork, logos or system images are used.
@@ -307,8 +328,12 @@ const API = "https://api.weather.gov";
 const ZIP_API = "https://api.zippopotam.us/us/";
 let TZ = "America/New_York";                         // replaced by the NWS time zone for each place
 const NEWS_FEED = { name: "NPR News", url: "https://feeds.npr.org/1001/rss.xml" };
+// USGS public-domain webcam; shown in Current Conditions whenever the chosen place is within CAM.radiusMi of it
+const CAM = { lat:39.6515, lon:-75.3282, radiusMi:30,
+  img:"https://usgs-nims-images.s3.amazonaws.com/overlay/NJ_Salem_River_at_Woodstown/NJ_Salem_River_at_Woodstown_newest.jpg",
+  page:"https://atg.usgs.gov/HIVIS/camera/NJ_Salem_River_at_Woodstown" };
 const MIN = 60*1000;
-const EVERY = { now: 10*MIN, week: 10*MIN, news: 10*MIN, radar: 5*MIN };
+const EVERY = { now: 10*MIN, week: 10*MIN, news: 10*MIN, radar: 5*MIN, cam: 5*MIN };
 const STORE = "weather.places.v1";
 
 const $ = id => document.getElementById(id);
@@ -354,6 +379,12 @@ async function get(url){
   return r.json();
 }
 const placeLabel = p => `${p.name}, ${p.state}`;
+function miles(a, b){                                 // straight-line distance between two lat/lon points
+  const R = 3958.8, rad = x => x*Math.PI/180;
+  const dLat = rad(b.lat-a.lat), dLon = rad(b.lon-a.lon);
+  const h = Math.sin(dLat/2)**2 + Math.cos(rad(a.lat))*Math.cos(rad(b.lat))*Math.sin(dLon/2)**2;
+  return 2*R*Math.asin(Math.sqrt(h));
+}
 
 // NWS grid lookup for the current place; fetched once per place and reused
 let pointCache = null;
@@ -407,7 +438,7 @@ function setPlace(p){
   save(); renderPlace();
   $("alerts").innerHTML = ""; $("week").innerHTML = ""; $("obsNote").textContent = "";
   $("temp").innerHTML = `--<sup>\u00B0F</sup>`; $("cond").textContent = "Loading\u2026";
-  for (const k of ["week","now","radar"]) jobs[k].due = 0;
+  for (const k of ["week","now","radar","cam"]) jobs[k].due = 0;
   runJob(jobs.week).then(tick);
 }
 
@@ -482,6 +513,19 @@ function renderNow(d){
           <div>${esc(a.headline)}</div>
           <details><summary>Details</summary><pre>${esc(a.description)}</pre></details></div>`;
       }).join("");
+}
+
+// ---- Live camera (every 5 minutes): USGS Salem River webcam, only for places near it ----
+function loadCam(){
+  const dist = miles(PLACE, CAM);
+  const near = dist <= CAM.radiusMi;
+  $("cam").hidden = !near;
+  if (!near) return;
+  const img = $("camImg"), fb = $("camFallback");
+  img.onload = ()=>{ fb.hidden = true; img.hidden = false; };
+  img.onerror = ()=>{ fb.hidden = false; img.hidden = true; };
+  img.src = `${CAM.img}?t=${Date.now()}`;
+  $("camNote").textContent = `${Math.max(1, Math.round(dist))} mi from ${PLACE.name} \u00B7 checked ${clockTime()}`;
 }
 
 // ---- Week ahead (every 10 minutes) ----
@@ -565,7 +609,8 @@ const jobs = {
             try{ d = await loadNow(); live = true; }catch(e){ console.warn("Conditions unavailable:",e); d = sampleNow(); live = false; }
             if (g!==gen) return; liveNow = live; renderNow(d); } },
   news:  { every:EVERY.news,  label:"nextNews", run: async()=>{ try{ renderNews(await loadNews()); }catch(e){ console.warn("News unavailable:",e); if(!$("news").children.length) renderNews([]); } } },
-  radar: { every:EVERY.radar, run: loadRadar }
+  radar: { every:EVERY.radar, run: loadRadar },
+  cam:   { every:EVERY.cam,   run: async()=>loadCam() }
 };
 for (const j of Object.values(jobs)){ j.due = 0; j.busy = false; }
 
@@ -601,7 +646,7 @@ if (saved){
   if (c && /^\d{5}$/.test(c.zip) && isFinite(c.lat) && isFinite(c.lon)) PLACE = c.zip===HOME.zip ? { ...HOME } : c;
 }
 renderPlace();
-// In the Mac app, links (news stories, weather.gov radar) open in your default browser
+// In the Mac app, links (news stories, weather.gov radar, the USGS camera) open in your default browser
 if (document.documentElement.classList.contains("in-app")){
   document.addEventListener("click", e=>{
     const a = e.target.closest('a[target="_blank"]');
