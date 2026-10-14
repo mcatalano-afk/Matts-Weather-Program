@@ -100,12 +100,12 @@ os.makedirs(os.path.join(C, "MacOS"))
 os.makedirs(os.path.join(C, "Resources"))
 open(os.path.join(C, "Resources", "AppIcon.icns"), "wb").write(icns)
 shutil.copy(os.path.join(HERE, "..", "index.html"), os.path.join(C, "Resources", "index.html"))
-shutil.copy(os.path.join(HERE, "main.js"), os.path.join(C, "Resources", "main.js"))
+shutil.copy(os.path.join(HERE, "main.jxa"), os.path.join(C, "Resources", "main.jxa"))
 
 launcher = """#!/bin/bash
 # Starts the Elmer Weather window (JavaScript for Automation, built into macOS)
 RES="$(cd "$(dirname "$0")/../Resources" && pwd)"
-exec /usr/bin/osascript -l JavaScript "$RES/main.js" "$RES"
+exec /usr/bin/osascript -l JavaScript "$RES/main.jxa" "$RES"
 """
 exe = os.path.join(C, "MacOS", "Elmer Weather")
 open(exe, "w").write(launcher)
