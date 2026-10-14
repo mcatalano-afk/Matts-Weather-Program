@@ -101,6 +101,7 @@ function start(res) {
   // Web view that runs the weather page
   var config = $.WKWebViewConfiguration.alloc.init;
   try { config.preferences.setValueForKey($.NSNumber.numberWithBool(true), "allowFileAccessFromFileURLs"); } catch (e) {}
+  try { config.mediaTypesRequiringUserActionForPlayback = 0; } catch (e) {}   // let the muted live camera start on its own
   keep.links = $.EWLinkHandler.alloc.init;
   config.userContentController.addScriptMessageHandlerName(keep.links, "wxApp");
 

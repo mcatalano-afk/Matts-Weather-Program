@@ -4,7 +4,7 @@ A simple weather program for Elmer, NJ, with a Mac OS X Tiger-style Aqua interfa
 
 - Time and date
 - Current temperature and conditions
-- Live camera from the USGS gauge at Woodstown, NJ (shown for places within 30 miles of it)
+- Live video from the NJDOT traffic camera at Route 47 and Route 40, Franklin Township (shown for places within 30 miles of it)
 - Week-ahead outlook
 - Live NWS Doppler radar (nearest radar site, KDIX for Elmer)
 - Active weather alerts for the selected area
@@ -45,7 +45,7 @@ The app opens a native window with a WebKit view using JavaScript for Automation
 ## Data and images
 
 - Weather data, radar imagery and alerts: U.S. National Weather Service (api.weather.gov, radar.weather.gov), works of the U.S. Government in the public domain.
-- Live camera image: U.S. Geological Survey streamgage webcam 01482500, Salem River at Woodstown, NJ, public domain.
+- Live camera: New Jersey Department of Transportation traffic camera (via 511NJ), shown unchanged. NJDOT's terms of use let anyone view, copy or distribute its information.
 - ZIP code lookup: Zippopotam.us (place names and coordinates only).
 - Weather icons and the app icon are original drawings released to the public domain (CC0).
 - The Aqua-style window, buttons and pinstripes are drawn from scratch in CSS. No Apple artwork, logos or system images are used.

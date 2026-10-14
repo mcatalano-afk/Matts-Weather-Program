@@ -128,7 +128,7 @@ a:focus-visible,button:focus-visible,input:focus-visible,summary:focus-visible{o
 .facts b{font-family:var(--mono);font-size:12px;font-weight:normal;font-variant-numeric:tabular-nums}
 .obs-note{font-size:11px;color:var(--muted)}
 
-/* Live camera (USGS, public domain) inside Current Conditions */
+/* Live camera (NJDOT / 511NJ traffic camera) inside Current Conditions */
 .cam{display:grid;gap:6px}
 .cam[hidden]{display:none}
 .cam-head{display:flex;justify-content:space-between;align-items:baseline;gap:4px 8px;flex-wrap:wrap}
@@ -136,7 +136,8 @@ a:focus-visible,button:focus-visible,input:focus-visible,summary:focus-visible{o
 .cam-head span{font-family:var(--mono);font-size:10px;color:var(--muted);font-variant-numeric:tabular-nums}
 .cam-frame{position:relative;border-radius:4px;overflow:hidden;aspect-ratio:16/9;border:1px solid #7a7a7a;
   background:linear-gradient(#1b2633,#0c131b);box-shadow:inset 0 1px 4px rgba(0,0,0,.6)}
-.cam-frame img{width:100%;height:100%;object-fit:cover;display:block}
+.cam-frame video{width:100%;height:100%;object-fit:cover;display:block;cursor:pointer}
+.live{color:#c3271c;letter-spacing:.02em}
 .cam-fallback{position:absolute;inset:0;display:grid;place-content:center;text-align:center;padding:16px;color:#a9c3dc;font-size:12px}
 .cam-foot{display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px;font-size:11px;color:var(--muted)}
 
@@ -260,12 +261,12 @@ footer{max-width:1060px;margin:14px auto 0;font-size:11px;color:#d6e6f8;line-hei
             <div><span>Today Hi / Lo</span><b id="today">--</b></div>
           </div>
           <div class="cam" id="cam" hidden>
-            <div class="cam-head"><b>Live Camera &#xB7; Woodstown, NJ</b><span id="camNote"></span></div>
-            <div class="cam-frame">
-              <img id="camImg" alt="Latest USGS webcam view across Veterans Memorial Lake toward the Horseshoe Dam on the Salem River at Woodstown, NJ">
-              <div class="cam-fallback" id="camFallback" hidden>The camera picture isn't available right now.</div>
+            <div class="cam-head"><b><span class="live">&#x25CF; LIVE</span> Camera &#xB7; Rt 47 &amp; Rt 40, Franklin Twp</b><span id="camNote"></span></div>
+            <div class="cam-frame" id="camFrame">
+              <video id="camVideo" muted autoplay playsinline disablepictureinpicture aria-label="Live NJDOT traffic camera at Route 47 (Delsea Drive) and Route 40 in Franklin Township, NJ"></video>
+              <div class="cam-fallback" id="camFallback" hidden>The live camera isn't available right now.</div>
             </div>
-            <div class="cam-foot"><a id="camLink" href="https://atg.usgs.gov/HIVIS/camera/NJ_Salem_River_at_Woodstown" target="_blank" rel="noopener">Open camera on usgs.gov</a><span>Source: U.S. Geological Survey</span></div>
+            <div class="cam-foot"><a href="https://511nj.org/camera" target="_blank" rel="noopener">Open 511NJ cameras</a><span>Source: NJDOT / 511NJ</span></div>
           </div>
           <div class="obs-note" id="obsNote"></div>
         </div>
@@ -314,7 +315,8 @@ footer{max-width:1060px;margin:14px auto 0;font-size:11px;color:#d6e6f8;line-hei
 
 <footer>
   Data, radar imagery and alerts: U.S. National Weather Service (api.weather.gov, radar.weather.gov), works of the U.S. Government in the public domain.
-  Live camera image: U.S. Geological Survey streamgage webcam 01482500, Salem River at Woodstown, NJ, public domain.
+  Live camera: New Jersey Department of Transportation traffic camera at Route 47 and Route 40 (via 511NJ), shown unchanged; NJDOT's terms of use let anyone view, copy or distribute its information.
+  Video player for browsers without built-in live-stream support: hls.js (open source, Apache 2.0), loaded only when needed.
   ZIP code lookup: Zippopotam.us (place names and coordinates only).
   Weather icons are original drawings made for this page and released to the public domain (CC0).
   The Aqua-style window, buttons and pinstripes are drawn from scratch in CSS; no Apple artwork, logos or system images are used.
@@ -329,10 +331,10 @@ const API = "https://api.weather.gov";
 const ZIP_API = "https://api.zippopotam.us/us/";
 let TZ = "America/New_York";                         // replaced by the NWS time zone for each place
 const NEWS_FEED = { name: "NPR News", url: "https://feeds.npr.org/1001/rss.xml" };
-// USGS public-domain webcam; shown in Current Conditions whenever the chosen place is within CAM.radiusMi of it
-const CAM = { lat:39.6515, lon:-75.3282, radiusMi:30,
-  img:"https://usgs-nims-images.s3.amazonaws.com/overlay/NJ_Salem_River_at_Woodstown/NJ_Salem_River_at_Woodstown_newest.jpg",
-  page:"https://atg.usgs.gov/HIVIS/camera/NJ_Salem_River_at_Woodstown" };
+// NJDOT live traffic camera (511NJ "NJ-47 @ US-40", Franklin Twp); shown whenever the chosen place is within CAM.radiusMi of it
+const CAM = { lat:39.5750, lon:-75.0462, radiusMi:30,
+  stream:"https://nj-511.wink.co/hls/public/50/WF01-647B-AAD0-9C86-6930_high/index.m3u8" };
+const HLS_JS = "https://cdnjs.cloudflare.com/ajax/libs/hls.js/1.5.20/hls.min.js";   // only for browsers that can't play live streams themselves
 const MIN = 60*1000;
 const EVERY = { now: 10*MIN, week: 10*MIN, news: 10*MIN, radar: 5*MIN, cam: 5*MIN };
 const STORE = "weather.places.v1";
@@ -516,18 +518,52 @@ function renderNow(d){
       }).join("");
 }
 
-// ---- Live camera (every 5 minutes): USGS Salem River webcam, only for places near it ----
+// ---- Live camera: NJDOT video stream, only for places near it. The 5-minute job is a watchdog that restarts a stalled stream ----
+let hls = null, camOn = false, hlsLoading = null;
+function loadHlsJs(){
+  if (window.Hls) return Promise.resolve();
+  return hlsLoading ||= new Promise((ok, no)=>{
+    const s = document.createElement("script");
+    s.src = HLS_JS; s.onload = ok; s.onerror = ()=>{ hlsLoading = null; no(new Error("player unavailable")); };
+    document.head.appendChild(s);
+  });
+}
+function stopCam(){
+  const v = $("camVideo");
+  if (hls){ hls.destroy(); hls = null; }
+  v.removeAttribute("src"); v.load();
+  delete v.dataset.last; camOn = false;
+}
+async function startCam(){
+  stopCam(); camOn = true;
+  const v = $("camVideo"), fb = $("camFallback");
+  const fail = ()=>{ fb.hidden = false; v.hidden = true; camOn = false; };
+  fb.hidden = true; v.hidden = false;
+  v.onplaying = ()=>{ fb.hidden = true; v.hidden = false; };
+  v.onerror = fail;
+  if (v.canPlayType("application/vnd.apple.mpegurl")){     // Safari and the Mac app play the stream directly
+    v.src = CAM.stream;
+  } else {
+    try { await loadHlsJs(); } catch(e){ fail(); return; }
+    if (!window.Hls || !Hls.isSupported()){ fail(); return; }
+    hls = new Hls({ lowLatencyMode:false });
+    hls.on(Hls.Events.ERROR, (e, d)=>{ if (d.fatal) fail(); });
+    hls.loadSource(CAM.stream); hls.attachMedia(v);
+  }
+  v.play().catch(()=>{});   // muted, so autoplay is allowed; if a browser still blocks it, a click starts it
+}
 function loadCam(){
   const dist = miles(PLACE, CAM);
   const near = dist <= CAM.radiusMi;
   $("cam").hidden = !near;
-  if (!near) return;
-  const img = $("camImg"), fb = $("camFallback");
-  img.onload = ()=>{ fb.hidden = true; img.hidden = false; };
-  img.onerror = ()=>{ fb.hidden = false; img.hidden = true; };
-  img.src = `${CAM.img}?t=${Date.now()}`;
-  $("camNote").textContent = `${Math.max(1, Math.round(dist))} mi from ${PLACE.name} \u00B7 checked ${clockTime()}`;
+  if (!near){ if (camOn || hls) stopCam(); return; }
+  $("camNote").textContent = `${Math.max(1, Math.round(dist))} mi from ${PLACE.name}`;
+  const v = $("camVideo");
+  const stuck = v.dataset.last !== undefined && +v.dataset.last === v.currentTime;   // no new video since the last check
+  v.dataset.last = v.currentTime;
+  if (!camOn || v.error || v.ended || stuck) startCam();
 }
+$("camFrame").addEventListener("click", ()=>{ const v = $("camVideo"); if (v.paused) v.play().catch(()=>{}); });
 
 // ---- Week ahead (every 10 minutes) ----
 async function loadWeek(){ const p = await point(); return (await get(p.forecast)).properties.periods; }
