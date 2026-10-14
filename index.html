@@ -23,6 +23,7 @@ if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandl
 }
 
 *{box-sizing:border-box}
+[hidden]{display:none !important}   /* hidden always wins over a component's own display rule */
 body{margin:0;padding-inline:16px;padding-block:22px 40px;font-family:var(--ui);font-size:13px;line-height:1.4;color:var(--ink);
   background:radial-gradient(120% 90% at 50% 0%,var(--desk-1),var(--desk-2)) fixed, var(--desk-2)}
 h1,h2{margin:0;font-weight:bold;text-wrap:balance}
