@@ -1,3 +1,4 @@
+<meta charset="utf-8">
 <title>Elmer Weather Station</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <script>/* Inside the Mac app the real window supplies the title bar, so the page drops its drawn one */
@@ -104,7 +105,7 @@ a:focus-visible,button:focus-visible,input:focus-visible,summary:focus-visible{o
 .alert.moderate{background:var(--warn-bg);border-color:#dcc27a}
 .alert.moderate::before{background:radial-gradient(circle at 50% 30%,#ffd76a,#d18b00 70%);color:#3a2300}
 .alert.none{background:var(--ok-bg);border-color:#a9cfa6;color:var(--ok);font-weight:bold}
-.alert.none::before{content:"✓";background:radial-gradient(circle at 50% 30%,#a3e38a,#3b8f2a 70%)}
+.alert.none::before{content:"\2713";background:radial-gradient(circle at 50% 30%,#a3e38a,#3b8f2a 70%)}
 .alert .meta{font-size:11px;color:var(--muted)}
 .alert details{margin-top:5px;font-size:12px}
 .alert summary{cursor:pointer;color:#1650b4}
@@ -198,7 +199,7 @@ footer{max-width:1060px;margin:14px auto 0;font-size:11px;color:#d6e6f8;line-hei
   <div class="chrome">
     <div class="titlebar">
       <div class="lights" aria-hidden="true"><i class="r"></i><i class="y"></i><i class="g"></i></div>
-      <div class="wintitle" id="winTitle">Elmer Weather Station — Elmer, NJ</div>
+      <div class="wintitle" id="winTitle">Elmer Weather Station &#x2014; Elmer, NJ</div>
       <div class="spacer" aria-hidden="true"></div>
     </div>
     <section class="toolbar" aria-label="Change location">
@@ -219,7 +220,7 @@ footer{max-width:1060px;margin:14px auto 0;font-size:11px;color:#d6e6f8;line-hei
     <header class="hero">
       <div>
         <h1 id="placeName">Elmer, NJ</h1>
-        <div class="sub" id="placeSub">ZIP 08318 · Salem County</div>
+        <div class="sub" id="placeSub">ZIP 08318 &#xB7; Salem County</div>
       </div>
       <div class="clockbox">
         <div class="t" id="clock">--:--:--</div>
@@ -236,8 +237,8 @@ footer{max-width:1060px;margin:14px auto 0;font-size:11px;color:#d6e6f8;line-hei
           <div class="now-row">
             <div class="now-icon" id="nowIcon"></div>
             <div>
-              <div class="temp" id="temp">--<sup>°F</sup></div>
-              <div class="cond" id="cond">—</div>
+              <div class="temp" id="temp">--<sup>&#xB0;F</sup></div>
+              <div class="cond" id="cond">&#x2014;</div>
             </div>
           </div>
           <div class="facts">
@@ -250,7 +251,7 @@ footer{max-width:1060px;margin:14px auto 0;font-size:11px;color:#d6e6f8;line-hei
       </section>
 
       <section class="box radar" aria-label="Live radar">
-        <div class="box-head"><h2 id="radarTitle">Live Radar · KDIX</h2><span class="next">Refreshes every 5 min</span></div>
+        <div class="box-head"><h2 id="radarTitle">Live Radar &#xB7; KDIX</h2><span class="next">Refreshes every 5 min</span></div>
         <div class="box-body">
           <div class="radar-frame">
             <img id="radarImg" alt="Animated National Weather Service radar loop for the selected area">
@@ -280,14 +281,14 @@ footer{max-width:1060px;margin:14px auto 0;font-size:11px;color:#d6e6f8;line-hei
       <ul class="news" id="news"></ul>
       <div class="news-empty" id="newsEmpty" hidden>
         <div>Headlines load here when the page runs in your browser.</div>
-        <div><a href="https://www.npr.org/sections/news/" target="_blank" rel="noopener">NPR News</a> · <a href="https://apnews.com/" target="_blank" rel="noopener">AP News</a> · <a href="https://www.njspotlightnews.org/" target="_blank" rel="noopener">NJ Spotlight News</a></div>
+        <div><a href="https://www.npr.org/sections/news/" target="_blank" rel="noopener">NPR News</a> &#xB7; <a href="https://apnews.com/" target="_blank" rel="noopener">AP News</a> &#xB7; <a href="https://www.njspotlightnews.org/" target="_blank" rel="noopener">NJ Spotlight News</a></div>
       </div>
       <div class="news-foot" id="newsFoot"></div>
     </section>
   </div>
 
   <div class="statusbar">
-    <div class="status" id="status"><span class="dot"></span><span id="statusText">Loading…</span></div>
+    <div class="status" id="status"><span class="dot"></span><span id="statusText">Loading&#x2026;</span></div>
     <span>Data: National Weather Service</span>
   </div>
 </div>
@@ -374,16 +375,16 @@ let recent = [];
 
 function renderChips(){
   const list = [HOME, ...recent.filter(p=>p.zip!==HOME.zip)].slice(0,6);
-  $("chips").innerHTML = list.map(p=>`<button type="button" class="gel chip" data-zip="${esc(p.zip)}" aria-pressed="${p.zip===PLACE.zip}"><span>${p.zip===HOME.zip?"Home · ":""}${esc(placeLabel(p))}</span> <span class="z">${esc(p.zip)}</span></button>`).join("");
+  $("chips").innerHTML = list.map(p=>`<button type="button" class="gel chip" data-zip="${esc(p.zip)}" aria-pressed="${p.zip===PLACE.zip}"><span>${p.zip===HOME.zip?"Home \u00B7 ":""}${esc(placeLabel(p))}</span> <span class="z">${esc(p.zip)}</span></button>`).join("");
 }
 function renderPlace(){
   $("placeName").textContent = placeLabel(PLACE);
-  $("winTitle").textContent = `Elmer Weather Station — ${placeLabel(PLACE)}`;
-  document.title = PLACE.zip===HOME.zip ? "Elmer Weather Station" : `Elmer Weather Station · ${placeLabel(PLACE)}`;
+  $("winTitle").textContent = `Elmer Weather Station \u2014 ${placeLabel(PLACE)}`;
+  document.title = PLACE.zip===HOME.zip ? "Elmer Weather Station" : `Elmer Weather Station \u00B7 ${placeLabel(PLACE)}`;
   const bits = [`ZIP ${PLACE.zip}`];
   if (PLACE.county) bits.push(PLACE.county);
   if (pointCache?.gridId) bits.push(`NWS office ${pointCache.gridId}`);
-  $("placeSub").textContent = bits.join(" · ");
+  $("placeSub").textContent = bits.join(" \u00B7 ");
   $("zipInput").value = PLACE.zip;
   renderChips();
 }
@@ -407,7 +408,7 @@ function setPlace(p){
   pointCache = null; periods = null; liveNow = false; liveWeek = false;
   save(); renderPlace();
   $("alerts").innerHTML = ""; $("week").innerHTML = ""; $("obsNote").textContent = "";
-  $("temp").innerHTML = `--<sup>°F</sup>`; $("cond").textContent = "Loading…";
+  $("temp").innerHTML = `--<sup>\u00B0F</sup>`; $("cond").textContent = "Loading\u2026";
   for (const k of ["week","now","radar"]) jobs[k].due = 0;
   runJob(jobs.week).then(tick);
 }
@@ -417,7 +418,7 @@ async function chooseZip(zip){
   zip = String(zip||"").trim();
   if (!/^\d{5}$/.test(zip)) { msg.textContent = "Enter a 5-digit US ZIP code, like 08318."; return; }
   if (zip===PLACE.zip) { msg.textContent = ""; return; }
-  msg.textContent = ""; btn.disabled = true; txt.textContent = "Looking Up…";
+  msg.textContent = ""; btn.disabled = true; txt.textContent = "Looking Up\u2026";
   try { setPlace(await lookupZip(zip)); }
   catch(e){
     msg.textContent = e.status===404
@@ -464,9 +465,9 @@ async function loadNow(){
 function renderNow(d){
   const isDay = periods?.[0]?.isDaytime ?? true;
   const temp = d.tempF ?? periods?.[0]?.temperature;
-  const text = d.text || periods?.[0]?.shortForecast || "—";
+  const text = d.text || periods?.[0]?.shortForecast || "\u2014";
   $("nowIcon").innerHTML = icon(text, isDay);
-  $("temp").innerHTML = `${temp ?? "--"}<sup>°F</sup>`;
+  $("temp").innerHTML = `${temp ?? "--"}<sup>\u00B0F</sup>`;
   $("cond").textContent = text;
   $("hum").textContent = d.humidity==null ? "--" : d.humidity+"%";
   $("wind").textContent = d.windMph==null ? "--" : (d.windMph===0 ? "Calm" : compass(d.windDir)+d.windMph+" mph");
@@ -499,11 +500,11 @@ function toDays(list){
 }
 function renderWeek(list){
   const days = toDays(list);
-  $("today").textContent = `${days[0]?.hi ?? "--"}° / ${days[0]?.lo ?? "--"}°`;
+  $("today").textContent = `${days[0]?.hi ?? "--"}\u00B0 / ${days[0]?.lo ?? "--"}\u00B0`;
   $("week").innerHTML = days.map((x,i)=>{
     const name = i===0 ? (x.day ? "Today" : "Tonight") : new Date(x.start).toLocaleDateString("en-US",{timeZone:TZ,weekday:"short"});
     return `<div class="day"><div class="n">${name}</div>${icon(x.text, x.day)}
-      <div class="hl"><b>${x.hi ?? "--"}°</b> <span>${x.lo ?? "--"}°</span></div>
+      <div class="hl"><b>${x.hi ?? "--"}\u00B0</b> <span>${x.lo ?? "--"}\u00B0</span></div>
       <div class="s">${esc(x.text)}</div>
       <div class="pop">${x.pop ? x.pop+"% precip" : "&nbsp;"}</div></div>`;
   }).join("");
@@ -537,7 +538,7 @@ function renderNews(items){
   const safe = items.filter(i=>i.title && /^https?:\/\//.test(i.link||"")).slice(0,10);
   $("newsEmpty").hidden = safe.length>0;
   $("news").innerHTML = safe.map(i=>`<li><span class="when">${ago(i.date)}</span><a href="${esc(i.link)}" target="_blank" rel="noopener">${esc(i.title)}</a></li>`).join("");
-  $("newsFoot").textContent = safe.length ? `${NEWS_FEED.name} top stories · updated ${clockTime()}` : "";
+  $("newsFoot").textContent = safe.length ? `${NEWS_FEED.name} top stories \u00B7 updated ${clockTime()}` : "";
 }
 
 // ---- Radar: the NWS radar site nearest the chosen place ----
@@ -547,7 +548,7 @@ async function loadRadar(){
   try { station = (await point()).radarStation || station; } catch(e){}
   if (g!==gen) return;
   const img = $("radarImg"), fb = $("radarFallback");
-  $("radarTitle").textContent = station ? `Live Radar · ${station}` : "Live Radar";
+  $("radarTitle").textContent = station ? `Live Radar \u00B7 ${station}` : "Live Radar";
   $("radarLink").href = station ? `https://radar.weather.gov/station/${station.toLowerCase()}/standard` : "https://radar.weather.gov/";
   $("radarLink").textContent = station ? `Open ${station} radar on weather.gov` : "Open radar on weather.gov";
   img.alt = `Animated National Weather Service radar loop from ${station || "the nearest radar"} for ${placeLabel(PLACE)}`;
@@ -579,7 +580,7 @@ async function runJob(j){
 function updateStatus(){
   const live = liveNow && liveWeek;
   $("status").classList.toggle("sample", !live);
-  $("statusText").textContent = live ? "Live · updated " + clockTime() : "Sample data · live feed not reachable here";
+  $("statusText").textContent = live ? "Live \u00B7 updated " + clockTime() : "Sample data \u00B7 live feed not reachable here";
 }
 const mmss = ms => { const s = Math.max(0, Math.ceil(ms/1000)); return Math.floor(s/60)+":"+String(s%60).padStart(2,"0"); };
 
@@ -590,7 +591,7 @@ function tick(){
   $("date").textContent = now.toLocaleDateString("en-US",{timeZone:TZ,weekday:"long",month:"long",day:"numeric"});
   for (const j of Object.values(jobs)){
     if (!j.busy && Date.now() >= j.due) runJob(j);
-    if (j.label) $(j.label).textContent = j.busy ? "Updating…" : "Next update " + mmss(j.due - Date.now());
+    if (j.label) $(j.label).textContent = j.busy ? "Updating\u2026" : "Next update " + mmss(j.due - Date.now());
   }
 }
 

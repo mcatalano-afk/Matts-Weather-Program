@@ -1,6 +1,6 @@
 # Elmer Weather Station
 
-A simple weather program for Elmer, NJ, with a Mac OS X Tiger–style Aqua interface.
+A simple weather program for Elmer, NJ, with a Mac OS X Tiger-style Aqua interface.
 
 - Time and date
 - Current temperature and conditions

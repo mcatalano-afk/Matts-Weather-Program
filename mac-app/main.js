@@ -1,4 +1,4 @@
-// Elmer Weather Station — Mac app window.
+// Elmer Weather Station - Mac app window.
 // Uses JavaScript for Automation (built into macOS) to open a native window with a WebKit view
 // that runs the weather page bundled in this app's Resources folder. No compiler or extra software needed.
 ObjC.import("Cocoa");
