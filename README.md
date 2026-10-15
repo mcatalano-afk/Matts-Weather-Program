@@ -10,6 +10,7 @@ A simple weather program for Elmer, NJ, with a Mac OS X Tiger-style Aqua interfa
 - Active weather alerts for the selected area
 - Change ZIP codes to see other areas (Elmer stays saved as Home)
 - Background music with Play/Stop, volume down, volume up and mute buttons (top right of the window)
+- Weather Radio: click **Weather Radio** and your computer's built-in voice reads the station ID, alerts, current conditions and forecast on a loop, the way NOAA Weather Radio does. New alerts break in with a soft chime; the music pauses while it talks. Pick the voice and speed in the On Air panel. (Not an official NOAA broadcast; keep a real weather radio for warnings.)
 
 ## Use it
 
@@ -50,4 +51,5 @@ The app opens a native window with a WebKit view using JavaScript for Automation
 - ZIP code lookup: Zippopotam.us (place names and coordinates only).
 - Weather icons and the app icon are original drawings released to the public domain (CC0).
 - Music: "Salem County Skies," an original smooth-jazz piece written for this program and released to the public domain (CC0). The page plays it live with the browser's Web Audio; there is no audio file.
+- Weather Radio: the computer's own text-to-speech reads the NWS text; the alert chime is an original sound (CC0), not the NWS warning tone.
 - The Aqua-style window, buttons and pinstripes are drawn from scratch in CSS. No Apple artwork, logos or system images are used.

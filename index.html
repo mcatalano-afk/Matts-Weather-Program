@@ -28,7 +28,7 @@ body{margin:0;padding-inline:16px;padding-block:22px 40px;font-family:var(--ui);
   background:radial-gradient(120% 90% at 50% 0%,var(--desk-1),var(--desk-2)) fixed, var(--desk-2)}
 h1,h2{margin:0;font-weight:bold;text-wrap:balance}
 a{color:#1650b4}
-a:focus-visible,button:focus-visible,input:focus-visible,summary:focus-visible{outline:3px solid rgba(70,140,230,.75);outline-offset:1px;border-radius:4px}
+a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible{outline:3px solid rgba(70,140,230,.75);outline-offset:1px;border-radius:4px}
 
 /* ---- Window ---- */
 .window{max-width:1060px;margin:0 auto;border-radius:7px 7px 5px 5px;overflow:hidden;
@@ -202,6 +202,28 @@ footer{max-width:1060px;margin:14px auto 0;font-size:11px;color:#d6e6f8;line-hei
 .vu i.on{background:linear-gradient(#bfe3ff,#4fa3ec);box-shadow:0 0 3px rgba(120,200,255,.7)}
 .vu.muted i.on{background:#4a5d70;box-shadow:none}
 @media (max-width:620px){.music{margin-left:0}}
+
+/* Weather Radio: toolbar button and the on-air panel that shows what the voice is reading */
+.radio-ctl{display:flex;align-items:center}
+.radio-btn{font-size:12px;padding:4px 14px;display:inline-flex;align-items:center;gap:6px}
+.radio-btn svg{display:block}
+.onair{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px 14px;align-items:center;background:var(--box);
+  border:1px solid var(--box-edge);border-radius:6px;padding:10px;box-shadow:0 1px 2px rgba(0,0,0,.12)}
+@media (max-width:760px){.onair{grid-template-columns:1fr}}
+.onair-lcd{background:linear-gradient(#2c3a4a,#0f1823);color:#bfe3ff;border-radius:6px;border:1px solid #000;padding:8px 12px;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.25);display:grid;gap:4px;min-width:0}
+.onair-top{display:flex;align-items:center;gap:4px 12px;flex-wrap:wrap;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:#8fa9c2}
+.onair-tag{display:inline-flex;align-items:center;gap:5px;color:#ff9a90;font-weight:bold}
+.onair-tag i{width:7px;height:7px;border-radius:50%;background:#ff5a4d;box-shadow:0 0 6px #ff5a4d}
+@media (prefers-reduced-motion:no-preference){.onair-tag i{animation:blink 1.4s ease-in-out infinite}@keyframes blink{50%{opacity:.3}}}
+.onair-meta{margin-left:auto;font-family:var(--mono);letter-spacing:0;font-variant-numeric:tabular-nums}
+.onair-line{font-size:14px;line-height:1.4;min-height:2.8em;text-shadow:0 0 6px rgba(120,200,255,.45);overflow-wrap:anywhere}
+.onair-ctl{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;font-size:11px;color:#333}
+.onair-ctl label{display:flex;align-items:center;gap:6px}
+.onair-ctl select{font-family:var(--ui);font-size:12px;max-width:190px}
+.onair-ctl .gel{font-size:12px;padding:3px 12px}
+.onair-note{grid-column:1/-1;font-size:11px;color:var(--muted)}
+
 /* Running as the Mac app: fill the real window, no drawn desktop or title bar */
 .in-app body{padding:0;background:var(--stripe-a)}
 .in-app .window{max-width:none;border-radius:0;box-shadow:none}
@@ -248,6 +270,12 @@ footer{max-width:1060px;margin:14px auto 0;font-size:11px;color:#d6e6f8;line-hei
             <g id="muteX" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" hidden><path d="M11 6l4 4M15 6l-4 4"/></g></svg>
         </button>
       </div>
+      <div class="radio-ctl">
+        <button type="button" class="gel radio-btn" id="radioBtn" aria-pressed="false" aria-controls="onair" title="Have your computer read the National Weather Service forecast aloud">
+          <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M4 5L12 1.8" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><rect x="1.5" y="5" width="13" height="9" rx="2" fill="none" stroke="currentColor" stroke-width="1.3"/><circle cx="5.5" cy="9.5" r="2.1" fill="currentColor"/><path d="M10 8h3M10 10.8h3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+          <span id="radioBtnText">Weather Radio</span>
+        </button>
+      </div>
       <div class="zip-msg" id="zipMsg" role="status"></div>
     </section>
   </div>
@@ -263,6 +291,19 @@ footer{max-width:1060px;margin:14px auto 0;font-size:11px;color:#d6e6f8;line-hei
         <div class="d" id="date"></div>
       </div>
     </header>
+
+    <section class="onair" id="onair" aria-label="Weather radio" hidden>
+      <div class="onair-lcd">
+        <div class="onair-top"><span class="onair-tag"><i></i>On Air</span><span id="radioSection">Starting</span><span class="onair-meta" id="radioMeta"></span></div>
+        <div class="onair-line" id="radioLine">&#x2026;</div>
+      </div>
+      <div class="onair-ctl">
+        <label for="radioVoice">Voice <select id="radioVoice"></select></label>
+        <label for="radioRate">Speed <select id="radioRate"><option value="0.85">Slower</option><option value="1">Normal</option><option value="1.15">Faster</option></select></label>
+        <button type="button" class="gel" id="radioSkip">Next Section</button>
+      </div>
+      <div class="onair-note">Your computer's built-in voice reading National Weather Service information. This is not an official NOAA Weather Radio broadcast; keep a real weather radio for warnings.</div>
+    </section>
 
     <section class="alerts" id="alerts" aria-label="Weather alerts"></section>
 
@@ -342,6 +383,7 @@ footer{max-width:1060px;margin:14px auto 0;font-size:11px;color:#d6e6f8;line-hei
   ZIP code lookup: Zippopotam.us (place names and coordinates only).
   Weather icons are original drawings made for this page and released to the public domain (CC0).
   Music: &#x201C;Salem County Skies,&#x201D; an original smooth-jazz piece written for this page and released to the public domain (CC0). Your browser plays it live from code; no recording is used.
+  Weather Radio: your computer's built-in text-to-speech voice reads the National Weather Service text shown on this page; the alert chime is an original sound made for this page (CC0). It is not an official NOAA Weather Radio broadcast.
   The Aqua-style window, buttons and pinstripes are drawn from scratch in CSS; no Apple artwork, logos or system images are used.
   Headlines are text links only; each opens the full story on the publisher's site.
 </footer>
@@ -430,16 +472,16 @@ let recent = [];
 
 function renderChips(){
   const list = [HOME, ...recent.filter(p=>p.zip!==HOME.zip)].slice(0,6);
-  $("chips").innerHTML = list.map(p=>`<button type="button" class="gel chip" data-zip="${esc(p.zip)}" aria-pressed="${p.zip===PLACE.zip}"><span>${p.zip===HOME.zip?"Home \u00B7 ":""}${esc(placeLabel(p))}</span> <span class="z">${esc(p.zip)}</span></button>`).join("");
+  $("chips").innerHTML = list.map(p=>`<button type="button" class="gel chip" data-zip="${esc(p.zip)}" aria-pressed="${p.zip===PLACE.zip}"><span>${p.zip===HOME.zip?"Home · ":""}${esc(placeLabel(p))}</span> <span class="z">${esc(p.zip)}</span></button>`).join("");
 }
 function renderPlace(){
   $("placeName").textContent = placeLabel(PLACE);
-  $("winTitle").textContent = `Elmer Weather Station \u2014 ${placeLabel(PLACE)}`;
-  document.title = PLACE.zip===HOME.zip ? "Elmer Weather Station" : `Elmer Weather Station \u00B7 ${placeLabel(PLACE)}`;
+  $("winTitle").textContent = `Elmer Weather Station — ${placeLabel(PLACE)}`;
+  document.title = PLACE.zip===HOME.zip ? "Elmer Weather Station" : `Elmer Weather Station · ${placeLabel(PLACE)}`;
   const bits = [`ZIP ${PLACE.zip}`];
   if (PLACE.county) bits.push(PLACE.county);
   if (pointCache?.gridId) bits.push(`NWS office ${pointCache.gridId}`);
-  $("placeSub").textContent = bits.join(" \u00B7 ");
+  $("placeSub").textContent = bits.join(" · ");
   $("zipInput").value = PLACE.zip;
   renderChips();
 }
@@ -460,12 +502,13 @@ function setPlace(p){
   gen++;
   PLACE = p;
   recent = [p, ...recent.filter(x=>x.zip!==p.zip)].slice(0,6);
-  pointCache = null; periods = null; liveNow = false; liveWeek = false;
+  pointCache = null; periods = null; liveNow = false; liveWeek = false; window.wxLatest = null;
   save(); renderPlace();
   $("alerts").innerHTML = ""; $("week").innerHTML = ""; $("obsNote").textContent = "";
-  $("temp").innerHTML = `--<sup>\u00B0F</sup>`; $("cond").textContent = "Loading\u2026";
+  $("temp").innerHTML = `--<sup>°F</sup>`; $("cond").textContent = "Loading…";
   for (const k of ["week","now","radar","cam"]) jobs[k].due = 0;
   runJob(jobs.week).then(tick);
+  window.wxRadio?.placeChanged();
 }
 
 async function chooseZip(zip){
@@ -473,7 +516,7 @@ async function chooseZip(zip){
   zip = String(zip||"").trim();
   if (!/^\d{5}$/.test(zip)) { msg.textContent = "Enter a 5-digit US ZIP code, like 08318."; return; }
   if (zip===PLACE.zip) { msg.textContent = ""; return; }
-  msg.textContent = ""; btn.disabled = true; txt.textContent = "Looking Up\u2026";
+  msg.textContent = ""; btn.disabled = true; txt.textContent = "Looking Up…";
   try { setPlace(await lookupZip(zip)); }
   catch(e){
     msg.textContent = e.status===404
@@ -518,11 +561,12 @@ async function loadNow(){
     windDir:o.windDirection.value, alerts:alerts.features.map(f=>f.properties) };
 }
 function renderNow(d){
+  window.wxLatest = d;                                  // the Weather Radio reads from this
   const isDay = periods?.[0]?.isDaytime ?? true;
   const temp = d.tempF ?? periods?.[0]?.temperature;
-  const text = d.text || periods?.[0]?.shortForecast || "\u2014";
+  const text = d.text || periods?.[0]?.shortForecast || "—";
   $("nowIcon").innerHTML = icon(text, isDay);
-  $("temp").innerHTML = `${temp ?? "--"}<sup>\u00B0F</sup>`;
+  $("temp").innerHTML = `${temp ?? "--"}<sup>°F</sup>`;
   $("cond").textContent = text;
   $("hum").textContent = d.humidity==null ? "--" : d.humidity+"%";
   $("wind").textContent = d.windMph==null ? "--" : (d.windMph===0 ? "Calm" : compass(d.windDir)+d.windMph+" mph");
@@ -539,6 +583,7 @@ function renderNow(d){
           <div>${esc(a.headline)}</div>
           <details><summary>Details</summary><pre>${esc(a.description)}</pre></details></div>`;
       }).join("");
+  window.wxRadio?.alertsUpdated(d.alerts);
 }
 
 // ---- Live camera: NJDOT video stream, only for places near it. The 5-minute job is a watchdog that restarts a stalled stream ----
@@ -602,11 +647,11 @@ function toDays(list){
 }
 function renderWeek(list){
   const days = toDays(list);
-  $("today").textContent = `${days[0]?.hi ?? "--"}\u00B0 / ${days[0]?.lo ?? "--"}\u00B0`;
+  $("today").textContent = `${days[0]?.hi ?? "--"}° / ${days[0]?.lo ?? "--"}°`;
   $("week").innerHTML = days.map((x,i)=>{
     const name = i===0 ? (x.day ? "Today" : "Tonight") : new Date(x.start).toLocaleDateString("en-US",{timeZone:TZ,weekday:"short"});
     return `<div class="day"><div class="n">${name}</div>${icon(x.text, x.day)}
-      <div class="hl"><b>${x.hi ?? "--"}\u00B0</b> <span>${x.lo ?? "--"}\u00B0</span></div>
+      <div class="hl"><b>${x.hi ?? "--"}°</b> <span>${x.lo ?? "--"}°</span></div>
       <div class="s">${esc(x.text)}</div>
       <div class="pop">${x.pop ? x.pop+"% precip" : "&nbsp;"}</div></div>`;
   }).join("");
@@ -640,7 +685,7 @@ function renderNews(items){
   const safe = items.filter(i=>i.title && /^https?:\/\//.test(i.link||"")).slice(0,10);
   $("newsEmpty").hidden = safe.length>0;
   $("news").innerHTML = safe.map(i=>`<li><span class="when">${ago(i.date)}</span><a href="${esc(i.link)}" target="_blank" rel="noopener">${esc(i.title)}</a></li>`).join("");
-  $("newsFoot").textContent = safe.length ? `${NEWS_FEED.name} top stories \u00B7 updated ${clockTime()}` : "";
+  $("newsFoot").textContent = safe.length ? `${NEWS_FEED.name} top stories · updated ${clockTime()}` : "";
 }
 
 // ---- Radar: the NWS radar site nearest the chosen place ----
@@ -650,7 +695,7 @@ async function loadRadar(){
   try { station = (await point()).radarStation || station; } catch(e){}
   if (g!==gen) return;
   const img = $("radarImg"), fb = $("radarFallback");
-  $("radarTitle").textContent = station ? `Live Radar \u00B7 ${station}` : "Live Radar";
+  $("radarTitle").textContent = station ? `Live Radar · ${station}` : "Live Radar";
   $("radarLink").href = station ? `https://radar.weather.gov/station/${station.toLowerCase()}/standard` : "https://radar.weather.gov/";
   $("radarLink").textContent = station ? `Open ${station} radar on weather.gov` : "Open radar on weather.gov";
   img.alt = `Animated National Weather Service radar loop from ${station || "the nearest radar"} for ${placeLabel(PLACE)}`;
@@ -683,7 +728,7 @@ async function runJob(j){
 function updateStatus(){
   const live = liveNow && liveWeek;
   $("status").classList.toggle("sample", !live);
-  $("statusText").textContent = live ? "Live \u00B7 updated " + clockTime() : "Sample data \u00B7 live feed not reachable here";
+  $("statusText").textContent = live ? "Live · updated " + clockTime() : "Sample data · live feed not reachable here";
 }
 const mmss = ms => { const s = Math.max(0, Math.ceil(ms/1000)); return Math.floor(s/60)+":"+String(s%60).padStart(2,"0"); };
 
@@ -694,7 +739,7 @@ function tick(){
   $("date").textContent = now.toLocaleDateString("en-US",{timeZone:TZ,weekday:"long",month:"long",day:"numeric"});
   for (const j of Object.values(jobs)){
     if (!j.busy && Date.now() >= j.due) runJob(j);
-    if (j.label) $(j.label).textContent = j.busy ? "Updating\u2026" : "Next update " + mmss(j.due - Date.now());
+    if (j.label) $(j.label).textContent = j.busy ? "Updating…" : "Next update " + mmss(j.due - Date.now());
   }
 }
 
@@ -837,12 +882,15 @@ document.addEventListener("visibilitychange", ()=>{ if (!document.hidden) tick()
   function applyVolume(){ if (ctx) master.gain.setTargetAtTime(playing ? target() : 0, ctx.currentTime, 0.06); }
 
   async function start(){
+    if (playing) return;
+    if (window.wxRadio?.isOn()) window.wxRadio.stop(false);   // music and the radio voice take turns
     if (!ctx) setup();
     await ctx.resume();
     step = 0; bar = 0; loops = 0; nextTime = ctx.currentTime + 0.08;
     playing = true; timer = setInterval(scheduler, 25); scheduler(); applyVolume(); render();
   }
   function stop(){
+    if (!playing) return;
     playing = false; clearInterval(timer);
     master.gain.setTargetAtTime(0, ctx.currentTime, 0.1);
     setTimeout(()=>{ if (!playing) ctx.suspend(); }, 600);
@@ -872,6 +920,267 @@ document.addEventListener("visibilitychange", ()=>{ if (!document.hidden) tick()
   el("volDown").addEventListener("click", ()=> setLevel(level - 1));
   el("volUp").addEventListener("click", ()=> setLevel(level + 1));
   el("mute").addEventListener("click", ()=>{ muted = !muted; remember(); applyVolume(); render(); });
+  render();
+  window.wxMusic = { isPlaying: ()=>playing, start, stop };   // lets the Weather Radio pause and resume the music
+})();
+</script>
+<script>
+// ---- Weather Radio: the computer's built-in voice reads the NWS alerts, conditions and forecast on a loop ----
+(()=>{
+  const synth = window.speechSynthesis;
+  const KEY = "weather.radio.v1";
+  const el = id => document.getElementById(id);
+  const btn = el("radioBtn"), panel = el("onair");
+  if (!synth || !window.SpeechSynthesisUtterance){
+    btn.disabled = true; btn.title = "This browser can't read text aloud";
+    window.wxRadio = { isOn:()=>false, stop(){}, alertsUpdated(){}, placeChanged(){} };
+    return;
+  }
+
+  let prefs = { voice:"", rate:1 };
+  try { Object.assign(prefs, JSON.parse(localStorage.getItem(KEY) || "{}")); } catch(e){}
+  const remember = () => { try { localStorage.setItem(KEY, JSON.stringify(prefs)); } catch(e){} };
+
+  let on = false, queue = [], idx = 0, runId = 0, waitTimer = null, waiting = false, stamp = 0;
+  let heard = new Set(), musicWasOn = false, voices = [], actx = null;
+
+  // ---- Voices: the English voices installed on this computer ----
+  function loadVoices(){
+    const norm = v => v.lang.replace("_","-");
+    voices = synth.getVoices().filter(v => /^en(-|$)/i.test(norm(v)));
+    voices.sort((a,b)=> (norm(b)==="en-US") - (norm(a)==="en-US") || a.name.localeCompare(b.name));
+    const sel = el("radioVoice");
+    sel.innerHTML = voices.length
+      ? voices.map(v=>`<option value="${esc(v.name)}">${esc(v.name.replace(/\s*\(.*\)$/,""))}${norm(v)!=="en-US" ? " ("+esc(norm(v))+")" : ""}</option>`).join("")
+      : `<option value="">Default voice</option>`;
+    if (!voices.some(v=>v.name===prefs.voice)){
+      const pick = ["Alex","Tom","Fred","Daniel","Samantha","Microsoft David","Google US English"]
+        .map(n=>voices.find(v=>v.name.startsWith(n))).find(Boolean) || voices[0];
+      prefs.voice = pick ? pick.name : "";
+    }
+    sel.value = prefs.voice;
+  }
+  loadVoices();
+  if ("onvoiceschanged" in synth) synth.addEventListener("voiceschanged", loadVoices);
+  el("radioRate").value = String(prefs.rate);
+
+  // ---- Turning NWS text into something a voice reads naturally ----
+  const ZONES = {EDT:"Eastern Daylight Time",EST:"Eastern Standard Time",CDT:"Central Daylight Time",CST:"Central Standard Time",
+    MDT:"Mountain Daylight Time",MST:"Mountain Standard Time",PDT:"Pacific Daylight Time",PST:"Pacific Standard Time"};
+  const DIRS = ["north","north northeast","northeast","east northeast","east","east southeast","southeast","south southeast",
+    "south","south southwest","southwest","west southwest","west","west northwest","northwest","north northwest"];
+  const windWord = deg => DIRS[Math.round(deg/22.5) % 16];
+  function speakable(s){
+    return String(s || "")
+      .replace(/\*\s*([A-Z][A-Z /]+?)\.\.\./g, (m, w)=> ". " + w.charAt(0) + w.slice(1).toLowerCase() + ": ")   // "* WHAT..." -> "What:"
+      .replace(/\.\.\./g, ", ")
+      .replace(/\s*\n+\s*/g, " ")
+      .replace(/(\d)\s*°\s*F?/g, "$1 degrees")
+      .replace(/(\d)\s*%/g, "$1 percent")
+      .replace(/\bmph\b/gi, "miles per hour")
+      .replace(/\bkts?\b/gi, "knots")
+      .replace(/\bNWS\b/g, "National Weather Service")
+      .replace(/\b(\d{1,2})(\d{2}) (AM|PM)\b/g, "$1:$2 $3")          // "1100 AM" -> "11:00 AM"
+      .replace(/\b(EDT|EST|CDT|CST|MDT|MST|PDT|PST)\b/g, z=>ZONES[z])
+      .replace(/\s+([,.])/g, "$1").replace(/,\s*,/g, ",").replace(/\.\s*\./g, ".")
+      .replace(/\s{2,}/g, " ").replace(/^[\s.,:]+/, "").trim();
+  }
+  function sentences(text){
+    const parts = speakable(text).match(/(?:[^.!?]|\.(?=\d))+(?:[.!?]+|$)/g) || [];
+    const out = [];
+    for (let p of parts){
+      p = p.trim(); if (!p || /^[.,!?]+$/.test(p)) continue;
+      if (out.length && out[out.length-1].length + p.length < 160) out[out.length-1] += " " + p; else out.push(p);
+    }
+    return out;
+  }
+  const spokenTime = d => new Date(d).toLocaleTimeString("en-US",{timeZone:TZ,hour:"numeric",minute:"2-digit"});
+  function zoneName(d){
+    try { return new Intl.DateTimeFormat("en-US",{timeZone:TZ,timeZoneName:"long"}).formatToParts(new Date(d)).find(p=>p.type==="timeZoneName")?.value || ""; }
+    catch(e){ return ""; }
+  }
+  const ordinal = n => n + ((n % 100 >= 11 && n % 100 <= 13) ? "th" : (["th","st","nd","rd"][n % 10] || "th"));
+  function spokenDate(d){
+    const dt = new Date(d), o = {timeZone:TZ};
+    return `${dt.toLocaleDateString("en-US",{...o,weekday:"long"})}, ${dt.toLocaleDateString("en-US",{...o,month:"long"})} ${ordinal(+dt.toLocaleDateString("en-US",{...o,day:"numeric"}))}`;
+  }
+  function untilText(iso){
+    const d = new Date(iso), day = x => x.toLocaleDateString("en-US",{timeZone:TZ});
+    return `${spokenTime(d)} ${day(d)===day(new Date()) ? "today" : d.toLocaleDateString("en-US",{timeZone:TZ,weekday:"long"})}`;
+  }
+  function periodName(p, i){
+    if (p.name) return p.name;
+    if (i === 0) return p.isDaytime ? "Today" : "Tonight";
+    const wd = new Date(p.startTime).toLocaleDateString("en-US",{timeZone:TZ,weekday:"long"});
+    return p.isDaytime ? wd : wd + " Night";
+  }
+  const alertKey = a => a.id || (a.event + "|" + a.headline);
+
+  // ---- One broadcast cycle, built from whatever the page is showing right now ----
+  function script(){
+    const items = [];
+    const add = (section, text) => sentences(text).forEach(t => items.push({ section, text:t }));
+    const chime = section => items.push({ section, chime:true, text:"" });
+    return { items, add, chime };
+  }
+  function readAlerts(s, alerts, section){
+    for (const a of alerts){
+      const until = a.ends || a.expires;
+      s.add(section, `${a.event}${until ? `, in effect until ${untilText(until)}` : ""}.`);
+      if (a.headline) s.add(section, a.headline);
+      if (a.description) s.add(section, a.description.slice(0, 2500));
+      if (a.instruction) s.add(section, "Precautionary and preparedness actions. " + a.instruction.slice(0, 1200));
+    }
+  }
+  function build({ skipOpening = false } = {}){
+    const s = script(), d = window.wxLatest, now = new Date();
+    const area = PLACE.county ? `${PLACE.name} and ${PLACE.county}` : `${PLACE.name} and vicinity`;
+    if (!skipOpening){
+      s.add("Station identification", `You are listening to the Elmer Weather Station, with National Weather Service information for ${area}. The time is ${spokenTime(now)} ${zoneName(now)}, ${spokenDate(now)}.`);
+      if (!(liveNow && liveWeek)) s.add("Station identification", "The live National Weather Service feed can't be reached right now, so the information that follows is example data only.");
+      const alerts = d?.alerts || [];
+      if (!d) s.add("Alerts", "Weather alert information is being updated.");
+      else if (!alerts.length) s.add("Alerts", `There are no active weather alerts for ${PLACE.name}.`);
+      else {
+        s.chime("Alerts");
+        s.add("Alerts", alerts.length === 1 ? "The following weather alert is in effect." : `The following ${alerts.length} weather alerts are in effect.`);
+        readAlerts(s, alerts, "Alerts");
+      }
+    }
+    if (d){
+      const bits = [d.text ? `At ${spokenTime(d.obsTime)}, ${d.station} reported ${d.text.toLowerCase()}.` : `Here are the latest conditions at ${d.station}, as of ${spokenTime(d.obsTime)}.`];
+      if (d.tempF != null) bits.push(`The temperature was ${d.tempF} degrees.`);
+      if (d.humidity != null) bits.push(`The humidity was ${d.humidity} percent.`);
+      if (d.windMph != null) bits.push(d.windMph === 0 ? "The wind was calm." : `The wind was ${d.windDir != null ? "from the " + windWord(d.windDir) + " " : ""}at ${d.windMph} miles per hour.`);
+      s.add("Current conditions", bits.join(" "));
+    } else s.add("Current conditions", "Current conditions are being updated.");
+    const list = periods || [];
+    if (list.length){
+      s.add("Forecast", `Here is the forecast for ${PLACE.name} and vicinity.`);
+      list.slice(0, 14).forEach((p, i)=>{
+        const body = p.detailedForecast || `${p.shortForecast}, with a ${p.isDaytime ? "high near" : "low around"} ${p.temperature}.`;
+        s.add("Forecast", `${periodName(p, i)}. ${body}`);
+      });
+    }
+    s.add("Closing", "This has been the Elmer Weather Station, with information from the National Weather Service. This information repeats every few minutes and is updated as new forecasts and alerts are issued.");
+    return s.items;
+  }
+
+  // ---- Player: speaks one sentence at a time (long utterances get cut off in some browsers) ----
+  const voice = () => voices.find(v=>v.name===prefs.voice) || null;
+  function show(item){
+    el("radioSection").textContent = item.section;
+    el("radioLine").textContent = item.chime ? "♫" : item.text;
+    el("radioMeta").textContent = `${Math.min(idx+1, queue.length)} / ${queue.length}`;
+  }
+  function next(run){
+    if (!on || run !== runId) return;
+    stamp = Date.now();
+    if (idx >= queue.length){
+      waiting = true;
+      el("radioSection").textContent = "Next cycle"; el("radioLine").textContent = "Starting again with the latest information…"; el("radioMeta").textContent = "";
+      waitTimer = setTimeout(()=>{ waiting = false; startCycle(); }, 3500);
+      return;
+    }
+    const item = queue[idx];
+    show(item);
+    if (item.chime){
+      waiting = true; playChime();
+      waitTimer = setTimeout(()=>{ waiting = false; if (run === runId){ idx++; next(run); } }, 1500);
+      return;
+    }
+    const u = new SpeechSynthesisUtterance(item.text);
+    const v = voice(); if (v){ u.voice = v; u.lang = v.lang; } else u.lang = "en-US";
+    u.rate = prefs.rate; u.pitch = 1; u.volume = 1;
+    u.onstart = ()=>{ stamp = Date.now(); };
+    const advance = ()=>{ if (run !== runId) return; idx++; setTimeout(()=>next(run), 250); };
+    u.onend = advance;
+    u.onerror = e => { if (e.error === "interrupted" || e.error === "canceled") return; advance(); };
+    synth.speak(u);
+  }
+  function go(){ const r = ++runId; synth.cancel(); clearTimeout(waitTimer); waiting = false; setTimeout(()=>next(r), 150); }   // short gap lets cancel() settle
+  function startCycle(){
+    queue = build(); idx = 0;
+    for (const a of (window.wxLatest?.alerts || [])) heard.add(alertKey(a));
+    go();
+  }
+  // Some browsers stall speech silently; nudge it along if nothing has happened for a while
+  setInterval(()=>{
+    if (!on || waiting) return;
+    if (synth.paused) synth.resume();
+    if (!synth.speaking && Date.now() - stamp > 20000){ idx++; next(runId); }
+  }, 5000);
+
+  // ---- An original three-note chime (CC0) before alerts; deliberately not the NWS warning tone ----
+  function playChime(){
+    try {
+      actx ||= new (window.AudioContext || window.webkitAudioContext)();
+      actx.resume();
+      const t0 = actx.currentTime + 0.03;
+      [[659.25,0],[880,0.3],[1046.5,0.6]].forEach(([f, dt])=>{
+        const o = actx.createOscillator(), g = actx.createGain();
+        o.type = "sine"; o.frequency.value = f;
+        g.gain.setValueAtTime(0.0001, t0+dt); g.gain.exponentialRampToValueAtTime(0.16, t0+dt+0.02); g.gain.exponentialRampToValueAtTime(0.0001, t0+dt+0.85);
+        o.connect(g).connect(actx.destination); o.start(t0+dt); o.stop(t0+dt+0.9);
+      });
+    } catch(e){}
+  }
+
+  // ---- On / off ----
+  function render(){
+    btn.setAttribute("aria-pressed", on);
+    el("radioBtnText").textContent = on ? "Stop Radio" : "Weather Radio";
+    panel.hidden = !on;
+  }
+  function start(){
+    if (on) return;
+    on = true;
+    try { actx ||= new (window.AudioContext || window.webkitAudioContext)(); actx.resume(); } catch(e){}   // unlock the chime during the click
+    musicWasOn = !!window.wxMusic?.isPlaying();
+    if (musicWasOn) window.wxMusic.stop();
+    heard = new Set(); loadVoices(); render();
+    startCycle();
+  }
+  function stop(resumeMusic = true){
+    if (!on) return;
+    on = false; runId++; clearTimeout(waitTimer); waiting = false; synth.cancel(); render();
+    if (resumeMusic && musicWasOn) window.wxMusic?.start();
+    musicWasOn = false;
+  }
+  btn.addEventListener("click", ()=> on ? stop() : start());
+  el("radioSkip").addEventListener("click", ()=>{
+    if (!on) return;
+    const cur = queue[idx]?.section; let i = idx;
+    while (i < queue.length && queue[i].section === cur) i++;
+    idx = i; go();
+  });
+  el("radioVoice").addEventListener("change", e=>{ prefs.voice = e.target.value; remember(); if (on && !waiting) go(); });
+  el("radioRate").addEventListener("change", e=>{ prefs.rate = +e.target.value || 1; remember(); if (on && !waiting) go(); });
+
+  window.wxRadio = {
+    isOn: ()=>on,
+    stop,
+    // A new alert interrupts the broadcast right away, then the cycle carries on with conditions and the forecast
+    alertsUpdated(alerts){
+      if (!on) return;
+      const fresh = (alerts || []).filter(a=>!heard.has(alertKey(a)));
+      if (!fresh.length) return;
+      fresh.forEach(a=>heard.add(alertKey(a)));
+      const s = script();
+      s.chime("New alert");
+      s.add("New alert", `This is a new weather alert for ${PLACE.name}.`);
+      readAlerts(s, fresh, "New alert");
+      queue = s.items.concat(build({ skipOpening:true })); idx = 0;
+      go();
+    },
+    placeChanged(){
+      if (!on) return;
+      runId++; synth.cancel(); clearTimeout(waitTimer);
+      el("radioSection").textContent = "Changing location"; el("radioLine").textContent = `Getting the latest information for ${placeLabel(PLACE)}…`; el("radioMeta").textContent = "";
+      heard = new Set(); waiting = true;
+      waitTimer = setTimeout(()=>{ waiting = false; startCycle(); }, 4000);
+    }
+  };
   render();
 })();
 </script>
