@@ -9,6 +9,7 @@ A simple weather program for Elmer, NJ, with a Mac OS X Tiger-style Aqua interfa
 - Live NWS Doppler radar (nearest radar site, KDIX for Elmer)
 - Active weather alerts for the selected area
 - Change ZIP codes to see other areas (Elmer stays saved as Home)
+- Background music with Play/Stop, volume down, volume up and mute buttons (top right of the window)
 
 ## Use it
 
@@ -48,4 +49,5 @@ The app opens a native window with a WebKit view using JavaScript for Automation
 - Live camera: New Jersey Department of Transportation traffic camera (via 511NJ), shown unchanged. NJDOT's terms of use let anyone view, copy or distribute its information.
 - ZIP code lookup: Zippopotam.us (place names and coordinates only).
 - Weather icons and the app icon are original drawings released to the public domain (CC0).
+- Music: "Salem County Skies," an original smooth-jazz piece written for this program and released to the public domain (CC0). The page plays it live with the browser's Web Audio; there is no audio file.
 - The Aqua-style window, buttons and pinstripes are drawn from scratch in CSS. No Apple artwork, logos or system images are used.
